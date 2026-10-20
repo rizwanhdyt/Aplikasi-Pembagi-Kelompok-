@@ -1,0 +1,829 @@
+```html
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KelompokKu - Generator & Pembagi Kelompok Siswa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .group-card { break-inside: avoid; border: 1px solid #cbd5e1 !important; shadow: none !important; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes shuffleBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-6px) scale(1.02); }
+        }
+        .anim-shuffle { animation: shuffleBounce 0.2s infinite alternate; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="no-print bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-700 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-md border border-white/20">
+                    <i data-lucide="users" class="w-6 h-6 text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">KelompokKu</h1>
+                    <p class="text-[11px] text-indigo-100 font-medium hidden sm:block">Aplikasi Pembagi Kelompok Siswa & Pembelajaran Interaktif</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2">
+                <button onclick="loadSampleData()" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-lg transition border border-white/20 flex items-center gap-1.5" title="Muat data simulasi siswa">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                    <span class="hidden md:inline">Contoh Data</span>
+                </button>
+                <button onclick="clearAllData()" class="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-xs font-semibold rounded-lg transition flex items-center gap-1.5" title="Hapus semua data">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span class="hidden md:inline">Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Layout Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+        <!-- Toast Notifications Area -->
+        <div id="toast-container" class="no-print fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+        <!-- Print-Only Header -->
+        <div class="hidden print-only mb-6 border-b pb-4">
+            <h1 class="text-2xl font-bold text-slate-900">Daftar Hasil Pembagian Kelompok</h1>
+            <p class="text-sm text-slate-600" id="print-date-subtitle"></p>
+        </div>
+
+        <!-- Top Overview Dashboard Counters -->
+        <div class="no-print grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Siswa</p>
+                    <p id="stat-total" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="mars" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Laki-laki (L)</p>
+                    <p id="stat-male" class="text-xl sm:text-2xl font-extrabold text-sky-600">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="venus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Perempuan (P)</p>
+                    <p id="stat-female" class="text-xl sm:text-2xl font-extrabold text-pink-600">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Kelompok</p>
+                    <p id="stat-groups" class="text-xl sm:text-2xl font-extrabold text-purple-600">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Panel: Input Forms & Grouping Settings -->
+            <div class="no-print lg:col-span-5 space-y-5">
+                
+                <!-- Input Section -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    
+                    <!-- Form Navigation Tabs -->
+                    <div class="flex border-b border-slate-200 bg-slate-50/60 p-1 gap-1">
+                        <button onclick="switchTab('single')" id="tab-btn-single" class="flex-1 py-2 px-3 text-xs font-bold text-center rounded-xl bg-white text-indigo-600 shadow-sm transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                            <span>Satuan</span>
+                        </button>
+                        <button onclick="switchTab('bulk')" id="tab-btn-bulk" class="flex-1 py-2 px-3 text-xs font-bold text-center rounded-xl text-slate-500 hover:text-slate-700 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                            <span>Tempel Banyak</span>
+                        </button>
+                        <button onclick="switchTab('file')" id="tab-btn-file" class="flex-1 py-2 px-3 text-xs font-bold text-center rounded-xl text-slate-500 hover:text-slate-700 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                            <span>Import File</span>
+                        </button>
+                        <button onclick="switchTab('readme')" id="tab-btn-readme" class="py-2 px-3 text-xs font-bold text-center rounded-xl text-slate-500 hover:text-slate-700 transition flex items-center justify-center gap-1.5" title="Panduan & README GitHub">
+                            <i data-lucide="book-open" class="w-3.5 h-3.5 text-amber-500"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-4 sm:p-5">
+                        <!-- Single Student Entry Form -->
+                        <div id="tab-single" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Siswa</label>
+                                <input type="text" id="input-name" placeholder="Contoh: Ahmad Fauzi" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs transition outline-none" onkeypress="handleKeyPressAdd(event)">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Kelamin</label>
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="input-gender" value="Laki-laki" checked class="peer sr-only">
+                                        <div class="px-3 py-2 rounded-xl border border-slate-200 text-center text-xs font-semibold text-slate-600 peer-checked:bg-sky-50 peer-checked:border-sky-500 peer-checked:text-sky-700 transition flex items-center justify-center gap-1.5">
+                                            <i data-lucide="mars" class="w-3.5 h-3.5 text-sky-500"></i> Laki-laki
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="input-gender" value="Perempuan" class="peer sr-only">
+                                        <div class="px-3 py-2 rounded-xl border border-slate-200 text-center text-xs font-semibold text-slate-600 peer-checked:bg-pink-50 peer-checked:border-pink-500 peer-checked:text-pink-700 transition flex items-center justify-center gap-1.5">
+                                            <i data-lucide="venus" class="w-3.5 h-3.5 text-pink-500"></i> Perempuan
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <button onclick="addSingleStudent()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Tambahkan Siswa
+                            </button>
+                        </div>
+
+                        <!-- Bulk Copy/Paste Input Form -->
+                        <div id="tab-bulk" class="space-y-3.5 hidden">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tempel Daftar Siswa (Nama, Gender)</label>
+                                <textarea id="input-bulk" rows="5" placeholder="Ahmad, Laki-laki
+Siti Rahma, Perempuan
+Budi, L
+Dewi, P" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs transition outline-none custom-scrollbar font-mono"></textarea>
+                                <p class="text-[11px] text-slate-400 mt-1">*Format: <code class="bg-slate-100 px-1 py-0.5 rounded">Nama, Gender</code> (Pisahkan per baris).</p>
+                            </div>
+                            <button onclick="addBulkStudents()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                                <i data-lucide="file-check" class="w-4 h-4"></i> Proses Data Banyak
+                            </button>
+                        </div>
+
+                        <!-- File Upload (.txt/.csv) -->
+                        <div id="tab-file" class="space-y-3.5 hidden">
+                            <div class="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-indigo-500 transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('file-input').click()">
+                                <i data-lucide="cloud-upload" class="w-8 h-8 text-indigo-500 mx-auto mb-2"></i>
+                                <p class="text-xs font-semibold text-slate-700">Klik untuk Unggah File .TXT / .CSV</p>
+                                <p class="text-[11px] text-slate-400 mt-1">Satu nama per baris (Format: <code class="bg-slate-200/70 px-1 rounded">Nama, Gender</code>)</p>
+                                <input type="file" id="file-input" accept=".txt,.csv" class="hidden" onchange="handleFileUpload(event)">
+                            </div>
+                        </div>
+
+                        <!-- Interactive Tab for Manual & GitHub Docs -->
+                        <div id="tab-readme" class="space-y-3 hidden text-xs text-slate-600">
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                                    <i data-lucide="github" class="w-4 h-4 text-indigo-600"></i> Cara Deploy ke GitHub Pages:
+                                </h4>
+                                <ol class="list-decimal list-inside space-y-1 text-[11px]">
+                                    <li>Buat repository baru di GitHub.</li>
+                                    <li>Upload file <code class="bg-slate-200 px-1 rounded">index.html</code> ini langsung ke repository.</li>
+                                    <li>Buka <b>Settings > Pages</b>.</li>
+                                    <li>Pilih branch <b>main</b> dan simpan. Selesai!</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grouping Settings Panel -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i> Aturan Pembagian Kelompok
+                    </h2>
+
+                    <!-- Aturan Gender -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Mode Distribusi Gender</label>
+                        <select id="gender-mode" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-medium text-slate-700 bg-white transition outline-none">
+                            <option value="mixed">Campuran Seimbang (Seimbang L & P per Kelompok)</option>
+                            <option value="segregated">Terpisah Berdasarkan Gender (Khusus L / Khusus P)</option>
+                            <option value="random">Acak Bebas (Abaikan Gender)</option>
+                        </select>
+                    </div>
+
+                    <!-- Target Division Method -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Metode Bagi</label>
+                            <select id="split-type" onchange="toggleSplitInput()" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-medium text-slate-700 bg-white transition outline-none">
+                                <option value="num-groups">Jumlah Kelompok</option>
+                                <option value="group-size">Anggota per Kelompok</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="split-label" class="block text-xs font-semibold text-slate-600 mb-1">Target Kelompok</label>
+                            <input type="number" id="split-value" min="1" value="4" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-medium text-slate-700 transition outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Action Shuffle Button -->
+                    <button onclick="generateGroups()" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-md shadow-indigo-200 flex items-center justify-center gap-2">
+                        <i data-lucide="dices" class="w-4 h-4 text-amber-300"></i> ACAK & BUAT KELOMPOK
+                    </button>
+                </div>
+
+                <!-- Active Student Roster -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i> Daftar Siswa (<span id="student-count-badge">0</span>)
+                        </h3>
+                        <button onclick="exportStudentListTxt()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition flex items-center gap-1" title="Unduh daftar ke TXT">
+                            <i data-lucide="download" class="w-3 h-3"></i> Ekspor TXT
+                        </button>
+                    </div>
+
+                    <div id="student-list" class="max-h-52 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                        <div class="text-center py-6 text-slate-400 text-xs italic">Belum ada siswa dimasukkan.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Generated Output & Export Options -->
+            <div class="lg:col-span-7 space-y-4">
+                
+                <div class="no-print bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">Hasil Pembagian Kelompok</h2>
+                        <p class="text-xs text-slate-500">Kelompok yang telah diacak secara otomatis</p>
+                    </div>
+
+                    <!-- Action Bar for Sharing -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.print()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5" title="Cetak halaman">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak
+                        </button>
+                        <button onclick="copyGroupsToClipboard()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5" title="Salin format WhatsApp">
+                            <i data-lucide="copy" class="w-3.5 h-3.5 text-indigo-600"></i> Salin Teks
+                        </button>
+                        <button onclick="exportGroupsTxt()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Unduh TXT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid View of Generated Group Cards -->
+                <div id="groups-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Default State -->
+                    <div class="sm:col-span-2 bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-3">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto">
+                            <i data-lucide="users" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-700">Belum Ada Kelompok Terbentuk</h3>
+                        <p class="text-xs text-slate-400 max-w-xs mx-auto">Masukkan nama siswa di sebelah kiri, tentukan aturan gender, lalu klik "Acak & Buat Kelompok".</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="no-print bg-white border-t border-slate-200 py-3.5 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 font-medium">
+            KelompokKu &copy; Generator Kelompok Siswa • Siap Deploy di GitHub Pages & Vercel.
+        </div>
+    </footer>
+
+    <!-- Main JavaScript Application Logic -->
+    <script>
+        // State Management
+        let students = [];
+        let generatedGroups = [];
+
+        // Theme palette for generated cards
+        const cardThemes = [
+            { border: 'border-indigo-200', bg: 'bg-indigo-50/40', titleBg: 'bg-indigo-600' },
+            { border: 'border-emerald-200', bg: 'bg-emerald-50/40', titleBg: 'bg-emerald-600' },
+            { border: 'border-purple-200', bg: 'bg-purple-50/40', titleBg: 'bg-purple-600' },
+            { border: 'border-amber-200', bg: 'bg-amber-50/40', titleBg: 'bg-amber-600' },
+            { border: 'border-rose-200', bg: 'bg-rose-50/40', titleBg: 'bg-rose-600' },
+            { border: 'border-cyan-200', bg: 'bg-cyan-50/40', titleBg: 'bg-cyan-600' }
+        ];
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            updateUI();
+            lucide.createIcons();
+            document.getElementById('print-date-subtitle').innerText = `Dicetak pada: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+        });
+
+        // Tab Navigation Switcher
+        function switchTab(tab) {
+            ['single', 'bulk', 'file', 'readme'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                document.getElementById(`tab-btn-${t}`).classList.add('text-slate-500');
+            });
+
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+            document.getElementById(`tab-btn-${tab}`).classList.remove('text-slate-500');
+        }
+
+        // Gender Normalizer
+        function normalizeGender(val) {
+            if (!val) return 'Laki-laki';
+            const clean = val.trim().toLowerCase();
+            if (['p', 'perempuan', 'female', 'f', 'wanita'].includes(clean)) {
+                return 'Perempuan';
+            }
+            return 'Laki-laki';
+        }
+
+        // Add Single Student
+        function addSingleStudent() {
+            const nameInput = document.getElementById('input-name');
+            const name = nameInput.value.trim();
+            const genderRadio = document.querySelector('input[name="input-gender"]:checked');
+            const gender = genderRadio ? genderRadio.value : 'Laki-laki';
+
+            if (!name) {
+                showToast('Nama siswa tidak boleh kosong!', 'error');
+                return;
+            }
+
+            students.push({ id: Date.now() + Math.random(), name, gender });
+            nameInput.value = '';
+            nameInput.focus();
+            
+            saveToLocalStorage();
+            updateUI();
+            showToast(`Siswa "${name}" ditambahkan.`);
+        }
+
+        function handleKeyPressAdd(e) {
+            if (e.key === 'Enter') addSingleStudent();
+        }
+
+        // Add Bulk Students
+        function addBulkStudents() {
+            const text = document.getElementById('input-bulk').value.trim();
+            if (!text) {
+                showToast('Silakan tempel data siswa terlebih dahulu!', 'error');
+                return;
+            }
+
+            const lines = text.split('\n');
+            let added = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const parts = line.split(',');
+                const name = parts[0].trim();
+                const genderRaw = parts[1] ? parts[1].trim() : 'Laki-laki';
+                
+                if (name) {
+                    students.push({
+                        id: Date.now() + Math.random(),
+                        name: name,
+                        gender: normalizeGender(genderRaw)
+                    });
+                    added++;
+                }
+            });
+
+            document.getElementById('input-bulk').value = '';
+            saveToLocalStorage();
+            updateUI();
+            showToast(`${added} siswa berhasil ditambahkan.`);
+        }
+
+        // File Upload Reader (.txt/.csv)
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let added = 0;
+
+                lines.forEach(line => {
+                    if (!line.trim()) return;
+                    const parts = line.split(',');
+                    const name = parts[0].trim();
+                    const genderRaw = parts[1] ? parts[1].trim() : 'Laki-laki';
+
+                    if (name) {
+                        students.push({
+                            id: Date.now() + Math.random(),
+                            name: name,
+                            gender: normalizeGender(genderRaw)
+                        });
+                        added++;
+                    }
+                });
+
+                saveToLocalStorage();
+                updateUI();
+                showToast(`${added} siswa diimpor dari file.`);
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // Delete Student
+        function removeStudent(id) {
+            students = students.filter(s => s.id !== id);
+            saveToLocalStorage();
+            updateUI();
+        }
+
+        // Toggle Split Input Label
+        function toggleSplitInput() {
+            const type = document.getElementById('split-type').value;
+            document.getElementById('split-label').innerText = type === 'num-groups' ? 'Jumlah Kelompok' : 'Anggota / Kelompok';
+        }
+
+        // Shuffle Utility Function
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Core Group Generator Logic
+        function generateGroups() {
+            if (students.length === 0) {
+                showToast('Masukkan minimal 1 siswa terlebih dahulu.', 'error');
+                return;
+            }
+
+            const genderMode = document.getElementById('gender-mode').value;
+            const splitType = document.getElementById('split-type').value;
+            const splitValue = parseInt(document.getElementById('split-value').value) || 1;
+
+            if (splitValue <= 0) {
+                showToast('Nilai pembagian harus lebih dari 0.', 'error');
+                return;
+            }
+
+            let groups = [];
+
+            if (genderMode === 'segregated') {
+                // SEPARATE GROUPS FOR MALES AND FEMALES
+                const males = shuffleArray(students.filter(s => s.gender === 'Laki-laki'));
+                const females = shuffleArray(students.filter(s => s.gender === 'Perempuan'));
+
+                const maleGroups = createGroupBuckets(males, splitType, splitValue, "Kelompok Laki-laki");
+                const femaleGroups = createGroupBuckets(females, splitType, splitValue, "Kelompok Perempuan");
+
+                groups = [...maleGroups, ...femaleGroups];
+
+            } else if (genderMode === 'mixed') {
+                // PROPORTIONAL BALANCED MIXED GENDER
+                const males = shuffleArray(students.filter(s => s.gender === 'Laki-laki'));
+                const females = shuffleArray(students.filter(s => s.gender === 'Perempuan'));
+
+                let totalGroupsCount = splitValue;
+                if (splitType === 'group-size') {
+                    totalGroupsCount = Math.max(1, Math.ceil(students.length / splitValue));
+                }
+
+                for (let i = 0; i < totalGroupsCount; i++) {
+                    groups.push({ name: `Kelompok ${i + 1}`, members: [] });
+                }
+
+                males.forEach((m, idx) => {
+                    groups[idx % totalGroupsCount].members.push(m);
+                });
+
+                females.forEach((f, idx) => {
+                    const targetIdx = (totalGroupsCount - 1 - (idx % totalGroupsCount));
+                    groups[targetIdx].members.push(f);
+                });
+
+                groups = groups.filter(g => g.members.length > 0);
+
+            } else {
+                // PURE RANDOM
+                const allShuffled = shuffleArray(students);
+                groups = createGroupBuckets(allShuffled, splitType, splitValue, "Kelompok");
+            }
+
+            // Animate and Render
+            animateShuffle(groups);
+        }
+
+        function createGroupBuckets(items, splitType, splitValue, prefixName) {
+            if (items.length === 0) return [];
+            let bucketsCount = splitValue;
+
+            if (splitType === 'group-size') {
+                bucketsCount = Math.max(1, Math.ceil(items.length / splitValue));
+            }
+
+            const result = [];
+            for (let i = 0; i < bucketsCount; i++) {
+                result.push({ name: `${prefixName} ${i + 1}`, members: [] });
+            }
+
+            items.forEach((item, idx) => {
+                result[idx % bucketsCount].members.push(item);
+            });
+
+            return result.filter(g => g.members.length > 0);
+        }
+
+        // Shuffle Animation Trigger
+        function animateShuffle(finalGroups) {
+            const container = document.getElementById('groups-container');
+            container.innerHTML = `
+                <div class="sm:col-span-2 bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
+                    <div class="inline-block text-indigo-600 anim-shuffle">
+                        <i data-lucide="dices" class="w-10 h-10"></i>
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">Sedang Mengacak Kelompok...</p>
+                </div>
+            `;
+            lucide.createIcons();
+
+            setTimeout(() => {
+                generatedGroups = finalGroups;
+                renderGroups();
+                updateStats();
+                showToast('Kelompok berhasil dibuat!');
+            }, 400);
+        }
+
+        // Render Generated Groups
+        function renderGroups() {
+            const container = document.getElementById('groups-container');
+            
+            if (generatedGroups.length === 0) {
+                container.innerHTML = `
+                    <div class="sm:col-span-2 bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-3">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto">
+                            <i data-lucide="users" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-700">Belum Ada Kelompok Terbentuk</h3>
+                        <p class="text-xs text-slate-400 max-w-xs mx-auto">Masukkan nama siswa di sebelah kiri, tentukan aturan gender, lalu klik "Acak & Buat Kelompok".</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = generatedGroups.map((group, idx) => {
+                const theme = cardThemes[idx % cardThemes.length];
+                const maleCount = group.members.filter(m => m.gender === 'Laki-laki').length;
+                const femaleCount = group.members.filter(m => m.gender === 'Perempuan').length;
+
+                return `
+                    <div class="group-card bg-white rounded-2xl border ${theme.border} shadow-sm overflow-hidden flex flex-col transition">
+                        <div class="${theme.titleBg} px-4 py-2.5 text-white flex items-center justify-between">
+                            <h3 class="font-bold text-xs sm:text-sm tracking-wide flex items-center gap-1.5">
+                                <i data-lucide="users" class="w-3.5 h-3.5 opacity-80"></i>
+                                ${group.name}
+                            </h3>
+                            <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-medium backdrop-blur-sm">
+                                ${group.members.length} Siswa
+                            </span>
+                        </div>
+                        <div class="p-3.5 flex-grow space-y-2 ${theme.bg}">
+                            <div class="no-print flex items-center gap-2 text-[10px] font-semibold text-slate-500 border-b border-slate-200/60 pb-1.5">
+                                <span class="text-sky-600 flex items-center gap-0.5"><i data-lucide="mars" class="w-3 h-3"></i> ${maleCount} L</span>
+                                <span>•</span>
+                                <span class="text-pink-600 flex items-center gap-0.5"><i data-lucide="venus" class="w-3 h-3"></i> ${femaleCount} P</span>
+                            </div>
+                            <ol class="space-y-1 list-decimal list-inside text-xs font-medium text-slate-700">
+                                ${group.members.map(m => `
+                                    <li class="p-1.5 rounded-lg bg-white/80 border border-slate-100 flex items-center justify-between">
+                                        <span class="truncate pr-2">${m.name}</span>
+                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${m.gender === 'Laki-laki' ? 'bg-sky-50 text-sky-600' : 'bg-pink-50 text-pink-600'}">
+                                            ${m.gender === 'Laki-laki' ? 'L' : 'P'}
+                                        </span>
+                                    </li>
+                                `).join('')}
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Render Active Roster
+        function updateUI() {
+            const listEl = document.getElementById('student-list');
+            document.getElementById('student-count-badge').innerText = students.length;
+
+            if (students.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada siswa dimasukkan.</div>`;
+            } else {
+                listEl.innerHTML = students.map((s) => `
+                    <div class="flex items-center justify-between p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 transition border border-slate-200/60 text-xs">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${s.gender === 'Laki-laki' ? 'bg-sky-100 text-sky-700' : 'bg-pink-100 text-pink-700'}">
+                                ${s.gender === 'Laki-laki' ? 'L' : 'P'}
+                            </span>
+                            <span class="font-medium text-slate-700 truncate">${s.name}</span>
+                        </div>
+                        <button onclick="removeStudent(${s.id})" class="text-slate-400 hover:text-rose-500 p-1 transition" title="Hapus">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            updateStats();
+            lucide.createIcons();
+        }
+
+        function updateStats() {
+            const maleCount = students.filter(s => s.gender === 'Laki-laki').length;
+            const femaleCount = students.filter(s => s.gender === 'Perempuan').length;
+
+            document.getElementById('stat-total').innerText = students.length;
+            document.getElementById('stat-male').innerText = maleCount;
+            document.getElementById('stat-female').innerText = femaleCount;
+            document.getElementById('stat-groups').innerText = generatedGroups.length;
+        }
+
+        // Load Preset Simulation Data
+        function loadSampleData() {
+            students = [
+                { id: 1, name: "Ahmad Fauzi", gender: "Laki-laki" },
+                { id: 2, name: "Siti Rahmawati", gender: "Perempuan" },
+                { id: 3, name: "Budi Santoso", gender: "Laki-laki" },
+                { id: 4, name: "Dewi Lestari", gender: "Perempuan" },
+                { id: 5, name: "Muhammad Rizky", gender: "Laki-laki" },
+                { id: 6, name: "Aisyah Putri", gender: "Perempuan" },
+                { id: 7, name: "Farhan Ali", gender: "Laki-laki" },
+                { id: 8, name: "Nabila Zahra", gender: "Perempuan" },
+                { id: 9, name: "Reza Pratama", gender: "Laki-laki" },
+                { id: 10, name: "Zahra Amalia", gender: "Perempuan" }
+            ];
+            saveToLocalStorage();
+            updateUI();
+            showToast('Data contoh siswa berhasil dimuat.');
+        }
+
+        function clearAllData() {
+            if (confirm('Hapus seluruh data siswa dan hasil kelompok?')) {
+                students = [];
+                generatedGroups = [];
+                saveToLocalStorage();
+                updateUI();
+                renderGroups();
+                showToast('Data berhasil di-reset.', 'info');
+            }
+        }
+
+        // Export Groups to Text File
+        function exportGroupsTxt() {
+            if (generatedGroups.length === 0) {
+                showToast('Belum ada kelompok untuk diunduh.', 'error');
+                return;
+            }
+
+            let textContent = "=========================================\n";
+            textContent += "      HASIL PEMBAGIAN KELOMPOK SISWA     \n";
+            textContent += "=========================================\n";
+            textContent += `Tanggal: ${new Date().toLocaleDateString('id-ID')}\n`;
+            textContent += `Total Siswa: ${students.length}\n`;
+            textContent += `Total Kelompok: ${generatedGroups.length}\n`;
+            textContent += "-----------------------------------------\n\n";
+
+            generatedGroups.forEach((group) => {
+                textContent += `[ ${group.name.toUpperCase()} ] (${group.members.length} Siswa)\n`;
+                group.members.forEach((m, idx) => {
+                    textContent += `  ${idx + 1}. ${m.name} (${m.gender === 'Laki-laki' ? 'L' : 'P'})\n`;
+                });
+                textContent += "\n";
+            });
+
+            downloadBlob(textContent, "Hasil_Kelompok_Siswa.txt", "text/plain");
+        }
+
+        function exportStudentListTxt() {
+            if (students.length === 0) {
+                showToast('Daftar siswa kosong.', 'error');
+                return;
+            }
+
+            let content = students.map(s => `${s.name}, ${s.gender}`).join('\n');
+            downloadBlob(content, "Daftar_Siswa.txt", "text/plain");
+        }
+
+        function downloadBlob(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`File ${filename} berhasil diunduh.`);
+        }
+
+        // Copy WhatsApp Formatted Text
+        function copyGroupsToClipboard() {
+            if (generatedGroups.length === 0) {
+                showToast('Belum ada kelompok untuk disalin.', 'error');
+                return;
+            }
+
+            let textContent = "*HASIL PEMBAGIAN KELOMPOK*\n\n";
+            generatedGroups.forEach((group) => {
+                textContent += `*${group.name}*\n`;
+                group.members.forEach((m, idx) => {
+                    textContent += `${idx + 1}. ${m.name} (${m.gender === 'Laki-laki' ? 'L' : 'P'})\n`;
+                });
+                textContent += "\n";
+            });
+
+            const textArea = document.createElement("textarea");
+            textArea.value = textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Teks tersalin ke clipboard!');
+            } catch (err) {
+                showToast('Gagal menyalin teks.', 'error');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // LocalStorage Handlers
+        function saveToLocalStorage() {
+            localStorage.setItem('kelompokku_students', JSON.stringify(students));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('kelompokku_students');
+            if (saved) {
+                try { students = JSON.parse(saved); } catch (e) { students = []; }
+            }
+        }
+
+        // Toast Messages
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'error' ? 'bg-rose-600' : type === 'info' ? 'bg-sky-600' : 'bg-slate-800';
+
+            toast.className = `${bgClass} text-white px-3.5 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all duration-300 opacity-0 transform translate-y-2`;
+            toast.innerHTML = `<span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => { toast.classList.remove('opacity-0', 'translate-y-2'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
+```
